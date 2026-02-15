@@ -52,7 +52,7 @@
                         <div className="bg-blue-600 p-2 rounded-lg">
                             <i className="fa-solid fa-rocket text-white"></i>
                         </div>
-                        <h1 className="text-xl font-bold text-slate-800">Launchpad</h1>
+                        <h1 className="text-xl font-bold text-slate-800 tracking-tight">Launchpad</h1>
                     </div>
                     <div className="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500">
                         <i className="fa-solid fa-user-circle text-xl"></i>
@@ -71,12 +71,7 @@
             </div>
         );
 
-        const AppCard = ({ name, url, logo }) => {
-            const colors = ['bg-blue-500', 'bg-indigo-500', 'bg-violet-500', 'bg-fuchsia-500', 'bg-emerald-500'];
-            const colorClass = colors[name.length % colors.length];
-            const initial = name.charAt(0).toUpperCase();
-            const [imgError, setImgError] = useState(false);
-
+        const AppCard = ({ name, url }) => {
             const handleClick = () => {
                 if (url) {
                     window.location.href = url;
@@ -86,23 +81,11 @@
             return (
                 <button 
                     onClick={handleClick} 
-                    className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm active:scale-95 hover:border-blue-200 hover:shadow-md transition-all duration-200 flex flex-col items-center justify-center gap-4 aspect-square group w-full"
+                    className="bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-sm active:scale-95 hover:border-blue-500 hover:shadow-md transition-all duration-200 flex items-center justify-center min-h-[100px] w-full group"
                 >
-                    <div className={`${colorClass} w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden shadow-lg shadow-blue-500/10 group-hover:scale-110 transition-transform bg-white`}>
-                        {logo && !imgError ? (
-                            <img 
-                                src={logo} 
-                                alt={name} 
-                                className="w-full h-full object-contain p-1"
-                                onError={() => setImgError(true)}
-                            />
-                        ) : (
-                            <div className={`${colorClass} w-full h-full flex items-center justify-center`}>
-                                <span className="text-white text-2xl font-bold">{initial}</span>
-                            </div>
-                        )}
-                    </div>
-                    <span className="text-sm font-semibold text-slate-700 text-center line-clamp-2 leading-tight">{name}</span>
+                    <span className="text-lg font-bold text-slate-800 text-center leading-tight group-hover:text-blue-600 transition-colors">
+                        {name}
+                    </span>
                 </button>
             );
         };
@@ -156,13 +139,12 @@
                                 <button onClick={() => window.location.reload()} className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium">Try Again</button>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pb-12">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-12">
                                 {filteredApps.map((app, index) => (
                                     <AppCard 
                                         key={index} 
                                         name={app.name} 
                                         url={app.url} 
-                                        logo={app.logo}
                                     />
                                 ))}
                             </div>
