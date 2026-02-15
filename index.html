@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mobile App Hub</title>
+    <title>Professional App Hub</title>
     <!-- React & Babel -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -15,7 +15,7 @@
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f8fafc;
+            background-color: #f1f5f9;
         }
 
         /* Ticker Animation */
@@ -43,13 +43,14 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Standard Transition */
-        .fade-in {
-            animation: fadeIn 0.3s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        /* Standard Transitions */
+        .fade-in { animation: fadeIn 0.2s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .modal-enter { animation: modalEnter 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes modalEnter {
+            from { opacity: 0; transform: scale(0.9) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
         }
     </style>
 </head>
@@ -57,27 +58,28 @@
     <div id="root" class="h-full w-full"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useRef } = React;
 
         // --- CONFIGURATION ---
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwX-IYZ0Kwwg6abtD--dfHslPEfNnlLvWkYJZRNOjHg65xndMaINSiq-8gumgheK9SPoA/exec"; 
         const UPI_ID = "dearhappy@sbi";
+        const PAYEE_NAME = "Gurwinder Singh";
+
+        // --- COMPONENTS ---
 
         const Ticker = ({ supporters }) => {
             if (!supporters || supporters.length === 0) return null;
-            
             return (
-                <div className="bg-slate-900 py-2 ticker-container">
+                <div className="bg-slate-900 py-2.5 ticker-container shadow-md z-30">
                     <div className="ticker-content">
                         {supporters.map((s, i) => (
-                            <span key={i} className="mx-12 text-xs font-bold text-yellow-400">
-                                TOP SUPPORTER: <span className="text-white">{s.name}</span> <span className="text-emerald-400">₹{s.amount}</span>
+                            <span key={i} className="mx-12 text-xs font-bold text-yellow-400 uppercase tracking-widest">
+                                TOP SUPPORTER: <span className="text-white">{s.name}</span> <span className="text-emerald-400 ml-1">₹{s.amount}</span>
                             </span>
                         ))}
-                        {/* Repeat for seamless loop */}
                         {supporters.map((s, i) => (
-                            <span key={`dup-${i}`} className="mx-12 text-xs font-bold text-yellow-400">
-                                TOP SUPPORTER: <span className="text-white">{s.name}</span> <span className="text-emerald-400">₹{s.amount}</span>
+                            <span key={`dup-${i}`} className="mx-12 text-xs font-bold text-yellow-400 uppercase tracking-widest">
+                                TOP SUPPORTER: <span className="text-white">{s.name}</span> <span className="text-emerald-400 ml-1">₹{s.amount}</span>
                             </span>
                         ))}
                     </div>
@@ -93,34 +95,64 @@
             </div>
         );
 
-        const AppCard = ({ name, url, onLaunch }) => {
-            return (
-                <button 
-                    onClick={() => onLaunch(name, url)} 
-                    className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm active:bg-slate-50 transition-colors flex flex-col items-center justify-center min-h-[120px] w-full"
-                >
-                    <span className="text-lg font-bold text-slate-800 text-center uppercase tracking-tight">
-                        {name}
-                    </span>
-                </button>
-            );
-        };
+        const PaymentModal = ({ onClose }) => {
+            const [copied, setCopied] = useState(false);
+            const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(PAYEE_NAME)}&cu=INR`;
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiLink)}`;
 
-        const CoffeeButton = () => {
-            const openSupport = () => {
-                const tr = Math.floor(Math.random() * 1000000000);
-                const upiLink = `upi://pay?pa=${UPI_ID}&pn=Support&mc=0000&mode=00&tn=CoffeeSupport&tr=${tr}&cu=INR`;
-                window.location.href = upiLink;
+            const handleCopy = () => {
+                const textArea = document.createElement("textarea");
+                textArea.value = UPI_ID;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                } catch (err) {
+                    console.error('Fallback: Oops, unable to copy', err);
+                }
+                document.body.removeChild(textArea);
             };
 
             return (
-                <button 
-                    className="fixed bottom-6 right-6 z-50 flex items-center bg-yellow-400 text-slate-900 px-4 py-3 rounded-full shadow-lg font-bold text-sm border-2 border-yellow-500 active:scale-95 transition-transform"
-                    onClick={openSupport}
-                >
-                    <i className="fa-solid fa-mug-hot mr-2"></i>
-                    BUY ME A COFFEE
-                </button>
+                <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+                    <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl modal-enter" onClick={e => e.stopPropagation()}>
+                        <div className="bg-slate-900 p-6 text-center relative">
+                            <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
+                                <i className="fa-solid fa-xmark text-xl"></i>
+                            </button>
+                            <div className="w-14 h-14 bg-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                                <i className="fa-solid fa-mug-hot text-slate-900 text-2xl"></i>
+                            </div>
+                            <h3 className="text-white font-black text-xl tracking-tight">Support My Work</h3>
+                            <p className="text-slate-400 text-xs mt-1">Scan or copy UPI to contribute</p>
+                        </div>
+                        
+                        <div className="p-8 flex flex-col items-center gap-6">
+                            <div className="p-3 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 hover:border-yellow-400 transition-colors">
+                                <img src={qrUrl} alt="UPI QR" className="w-48 h-48 mix-blend-multiply" />
+                            </div>
+
+                            <button 
+                                onClick={handleCopy}
+                                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all active:scale-95 ${copied ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}
+                            >
+                                <div className="text-left">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase">UPI ID</p>
+                                    <p className="text-sm font-mono font-bold text-slate-800">{UPI_ID}</p>
+                                </div>
+                                <div className={copied ? 'text-emerald-500' : 'text-slate-400'}>
+                                    <i className={`fa-solid ${copied ? 'fa-check-circle' : 'fa-copy'}`}></i>
+                                </div>
+                            </button>
+
+                            <button onClick={onClose} className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold shadow-lg active:scale-95 transition-transform">
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                </div>
             );
         };
 
@@ -131,25 +163,21 @@
             const [error, setError] = useState(null);
             const [searchTerm, setSearchTerm] = useState("");
             const [redirecting, setRedirecting] = useState(null);
+            const [showPayment, setShowPayment] = useState(false);
 
             useEffect(() => {
                 const fetchData = async () => {
                     try {
                         const response = await fetch(SCRIPT_URL);
                         const data = await response.json();
-                        
-                        if (Array.isArray(data)) {
-                            setApps(data);
-                            const sups = data
-                                .filter(item => item.supporter && item.amount)
-                                .map(item => ({ name: item.supporter, amount: item.amount }));
-                            setSupporters(sups);
-                        } else if (data.apps) {
+                        if (data.apps) {
                             setApps(data.apps);
                             setSupporters(data.supporters || []);
+                        } else if (Array.isArray(data)) {
+                            setApps(data);
                         }
                     } catch (err) {
-                        setError("Failed to load data.");
+                        setError("Connection error. Please try again.");
                     } finally {
                         setLoading(false);
                     }
@@ -165,62 +193,69 @@
             };
 
             const filteredApps = useMemo(() => {
-                return apps.filter(app => 
-                    app.name.toLowerCase().includes(searchTerm.toLowerCase())
-                );
+                return apps.filter(app => app.name.toLowerCase().includes(searchTerm.toLowerCase()));
             }, [apps, searchTerm]);
 
-            if (redirecting) {
-                return <RedirectOverlay appName={redirecting.name} />;
-            }
+            if (redirecting) return <RedirectOverlay appName={redirecting.name} />;
 
             return (
-                <div className="h-full flex flex-col max-w-lg mx-auto bg-white border-x border-slate-200 overflow-hidden relative">
+                <div className="h-full flex flex-col max-w-lg mx-auto bg-white border-x border-slate-200 relative overflow-hidden">
                     <Ticker supporters={supporters} />
                     
                     <div className="px-6 py-6 border-b border-slate-100">
-                        <div className="relative">
-                            <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <div className="relative group">
+                            <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
                             <input 
                                 type="text" 
                                 placeholder="Search apps..." 
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-11 pr-4 py-3 text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-4 text-sm outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
                             />
                         </div>
                     </div>
                     
-                    <main className="flex-1 overflow-y-auto ios-scroll px-6 py-6 bg-slate-50 pb-32">
+                    <main className="flex-1 overflow-y-auto ios-scroll px-6 py-8 bg-slate-50/50 pb-32">
                         {loading ? (
                             <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-                                <div className="loader rounded-full border-4 border-slate-200 h-10 w-10 mb-4"></div>
-                                <p className="text-sm font-medium">Loading...</p>
+                                <div className="loader rounded-full border-4 border-slate-200 h-12 w-12 mb-4"></div>
+                                <p className="text-sm font-medium">Syncing Hub...</p>
                             </div>
                         ) : error ? (
-                            <div className="text-center p-10 bg-red-50 rounded-xl border border-red-100">
-                                <p className="text-red-600 text-sm font-bold">{error}</p>
+                            <div className="text-center p-10 bg-white rounded-2xl border border-red-100 shadow-sm">
+                                <i className="fa-solid fa-circle-exclamation text-red-400 text-3xl mb-4"></i>
+                                <p className="text-slate-800 font-bold">{error}</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 gap-4">
                                 {filteredApps.map((app, index) => (
-                                    <AppCard 
-                                        key={index} 
-                                        name={app.name} 
-                                        url={app.url} 
-                                        onLaunch={handleLaunch}
-                                    />
+                                    <button 
+                                        key={index}
+                                        onClick={() => handleLaunch(app.name, app.url)} 
+                                        className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm active:bg-slate-50 hover:border-blue-500/50 transition-all flex items-center justify-center min-h-[110px] w-full"
+                                    >
+                                        <span className="text-lg font-black text-slate-800 text-center uppercase tracking-tight">
+                                            {app.name}
+                                        </span>
+                                    </button>
                                 ))}
                                 {filteredApps.length === 0 && (
-                                    <div className="text-center py-10 text-slate-400 text-sm">
-                                        No apps found.
-                                    </div>
+                                    <div className="text-center py-20 text-slate-400 italic text-sm">No results found</div>
                                 )}
                             </div>
                         )}
                     </main>
 
-                    <CoffeeButton />
+                    {/* Floating Coffee Button */}
+                    <button 
+                        onClick={() => setShowPayment(true)}
+                        className="fixed bottom-8 right-8 z-50 flex items-center bg-yellow-400 text-slate-900 px-5 py-4 rounded-2xl shadow-2xl font-black text-xs border-2 border-yellow-500 active:scale-95 transition-all group"
+                    >
+                        <i className="fa-solid fa-mug-hot mr-3 text-lg group-hover:rotate-12 transition-transform"></i>
+                        BUY ME A COFFEE
+                    </button>
+
+                    {showPayment && <PaymentModal onClose={() => setShowPayment(false)} />}
                 </div>
             );
         };
@@ -230,3 +265,4 @@
     </script>
 </body>
 </html>
+
