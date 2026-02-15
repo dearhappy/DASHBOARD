@@ -49,7 +49,8 @@
         .fade-in { animation: fadeIn 0.2s ease-in; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .modal-enter { animation: modalEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        /* Applied to wrapper, not card, to prevent capture distortion */
+        .modal-wrapper-enter { animation: modalEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes modalEnter {
             from { opacity: 0; transform: scale(0.95) translateY(10px); }
             to { opacity: 1; transform: scale(1) translateY(0); }
@@ -109,11 +110,10 @@
             const [downloading, setDownloading] = useState(false);
             
             const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(PAYEE_NAME)}&cu=INR`;
-            // Standard QR API
             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=10&data=${encodeURIComponent(upiLink)}`;
 
             useEffect(() => {
-                // Auto Download Logic - wait 1.5s for images to load
+                // Auto Download Logic
                 const timer = setTimeout(() => {
                     if (cardRef.current && window.html2canvas) {
                         setDownloading(true);
@@ -122,7 +122,8 @@
                             useCORS: true,
                             scale: 3, 
                             backgroundColor: "#ffffff",
-                            logging: false
+                            logging: false,
+                            allowTaint: true
                         }).then(canvas => {
                             const link = document.createElement('a');
                             link.download = 'HappySolutions-PaymentCard.png';
@@ -155,10 +156,8 @@
             return (
                 <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 fade-in" onClick={onClose}>
                     
-                    {/* Wrapper for animation/positioning */}
-                    <div className="modal-enter relative">
+                    <div className="modal-wrapper-enter relative">
                         
-                        {/* Close Button (Outside the capture area) */}
                         <button 
                             onClick={onClose} 
                             className="absolute -top-12 right-0 md:-right-12 w-10 h-10 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20 transition-colors z-50"
@@ -166,13 +165,11 @@
                             <i className="fa-solid fa-xmark"></i>
                         </button>
 
-                        {/* CAPTURE TARGET: Fixed 2:3 Ratio Card (300px x 450px) */}
                         <div 
                             ref={cardRef}
                             onClick={e => e.stopPropagation()}
                             className="bg-white w-[300px] h-[450px] rounded-3xl overflow-hidden shadow-2xl flex flex-col relative"
                         >
-                            {/* Card Header */}
                             <div className="bg-slate-900 h-32 flex flex-col items-center justify-center relative shrink-0">
                                 <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '10px 10px'}}></div>
                                 <div className="w-14 h-14 bg-yellow-400 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(250,204,21,0.5)] border-4 border-slate-800 z-10">
@@ -181,45 +178,38 @@
                                 <h3 className="text-white font-black text-xl uppercase tracking-widest mt-2">Support Us</h3>
                             </div>
                             
-                            {/* Card Body */}
                             <div className="flex-1 bg-white flex flex-col items-center px-6 pt-6 pb-4">
-                                {/* QR Code */}
                                 <div className="w-40 h-40 bg-white p-2 border-2 border-dashed border-slate-200 rounded-2xl mb-5 flex items-center justify-center">
                                     <img src={qrUrl} alt="QR" className="w-full h-full object-contain mix-blend-multiply" crossOrigin="anonymous" />
                                 </div>
 
-                                {/* UPI ID */}
                                 <div 
                                     onClick={handleCopy}
                                     className={`w-full flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${copied ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-100'}`}
                                 >
-                                    <div className="overflow-hidden">
+                                    <div className="flex-1 min-w-0 pr-2">
                                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">UPI ID</p>
-                                        <p className="text-sm font-mono font-bold text-slate-800 truncate">{UPI_ID}</p>
+                                        <p className="text-sm font-mono font-bold text-slate-800 break-all leading-tight">{UPI_ID}</p>
                                     </div>
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${copied ? 'bg-green-100 text-green-600' : 'bg-white text-slate-400 shadow-sm'}`}>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${copied ? 'bg-green-100 text-green-600' : 'bg-white text-slate-400 shadow-sm'}`}>
                                         <i className={`fa-solid ${copied ? 'fa-check' : 'fa-copy'} text-xs`}></i>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Card Footer */}
-                            <div className="h-12 bg-slate-50 border-t border-slate-100 flex items-center justify-center shrink-0">
+                            <div className="h-12 bg-slate-50 border-t border-slate-100 flex items-center justify-center shrink-0 px-4 text-center">
                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                                    Made with <span className="text-red-500 text-xs animate-pulse">❤️</span> By Happy Solutions
+                                    Made with <span className="text-red-500 text-xs inline-block animate-pulse">❤️</span> By Happy Solutions
                                 </p>
                             </div>
-                        </div>
 
-                        {/* Loading Indicator (Outside capture target) */}
-                        {downloading && (
-                            <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 rounded-3xl backdrop-blur-sm">
-                                <div className="text-center">
+                            {downloading && (
+                                <div className="absolute inset-0 bg-white/90 z-50 flex flex-col items-center justify-center text-center p-6">
                                     <div className="loader rounded-full border-4 border-slate-200 h-10 w-10 mb-3 mx-auto"></div>
-                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Saving to Gallery...</p>
+                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Saving Card...</p>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </div>
             );
