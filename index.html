@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile App Hub</title>
+    <!-- React & Babel -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Modern UI Tweaks */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        .ios-scroll { -webkit-overflow-scrolling: touch; }
+        
+        .loader {
+            border-top-color: #3b82f6;
+            animation: spinner 1s linear infinite;
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 h-screen w-screen overflow-hidden">
+    <div id="root" class="h-full w-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- CONFIGURATION ---
+        // REPLACE THIS URL with your published Google Apps Script Web App URL
+        const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE"; 
+
+        const Header = ({ onSearch, searchTerm }) => (
+            <div className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-5 py-4 sticky top-0 z-20">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                        <div className="bg-blue-600 p-2 rounded-lg">
+                            <i className="fa-solid fa-rocket text-white"></i>
+                        </div>
+                        <h1 className="text-xl font-bold text-slate-800">Launchpad</h1>
+                    </div>
+                    <div className="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500">
+                        <i className="fa-solid fa-user-circle text-xl"></i>
+                    </div>
+                </div>
+                <div className="relative">
+                    <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input 
+                        type="text" 
+                        placeholder="Search your apps..." 
+                        value={searchTerm}
+                        onChange={(e) => onSearch(e.target.value)}
+                        className="w-full bg-slate-100 border-none rounded-xl pl-11 pr-4 py-3 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
+                    />
+                </div>
+            </div>
+        );
+
+        const AppCard = ({ name, url, onClick }) => {
+            const colors = ['bg-blue-500', 'bg-indigo-500', 'bg-violet-500', 'bg-fuchsia-500', 'bg-emerald-500'];
+            const colorClass = colors[name.length % colors.length];
+            const initial = name.charAt(0).toUpperCase();
+
+            return (
+                <button 
+                    onClick={onClick} 
+                    className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm active:scale-95 hover:border-blue-200 hover:shadow-md transition-all duration-200 flex flex-col items-center justify-center gap-4 aspect-square group"
+                >
+                    <div className={`${colorClass} w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-blue-500/10 group-hover:scale-110 transition-transform`}>
+                        {initial}
+                    </div>
+                    <span className="text-sm font-semibold text-slate-700 text-center line-clamp-2 leading-tight">{name}</span>
+                </button>
+            );
+        };
+
+        const AppViewer = ({ app, onClose }) => {
+            const [isLoading, setIsLoading] = useState(true);
+
+            return (
+                <div className="fixed inset-0 z-50 bg-white flex flex-col h-full w-full fade-in">
+                    <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 shadow-sm shrink-0">
+                        <button onClick={onClose} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors flex items-center">
+                            <i className="fa-solid fa-chevron-left mr-2"></i>
+                            <span className="text-sm font-medium">Back</span>
+                        </button>
+                        <h2 className="font-bold text-slate-800 truncate px-4 text-sm uppercase tracking-wider">{app.name}</h2>
+                        <button onClick={() => window.location.reload()} className="p-2 text-slate-400">
+                             <i className="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+
+                    <div className="flex-1 relative bg-slate-100 w-full h-full overflow-hidden">
+                        {isLoading && (
+                            <div className="absolute inset-0 flex items-center justify-center z-10 bg-slate-50">
+                                <div className="loader ease-linear rounded-full border-4 border-slate-200 h-10 w-10"></div>
+                            </div>
+                        )}
+                        <iframe 
+                            src={app.url} 
+                            className="w-full h-full border-0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowFullScreen
+                            onLoad={() => setIsLoading(false)}
+                            sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-top-navigation-by-user-activation"
+                        />
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [apps, setApps] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [selectedApp, setSelectedApp] = useState(null);
+            const [searchTerm, setSearchTerm] = useState("");
+
+            useEffect(() => {
+                const fetchData = async () => {
+                    if (SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwX-IYZ0Kwwg6abtD--dfHslPEfNnlLvWkYJZRNOjHg65xndMaINSiq-8gumgheK9SPoA/exec") {
+                       // Fallback Mock Data
+                       setApps([
+                           { name: "Setup Required", url: "" },
+                           { name: "Documentation", url: "https://www.wikipedia.org" },
+                           { name: "Company News", url: "https://news.google.com" },
+                       ]);
+                       setLoading(false);
+                       return;
+                    }
+
+                    try {
+                        const response = await fetch(SCRIPT_URL);
+                        const data = await response.json();
+                        if (data.error) throw new Error(data.error);
+                        setApps(data);
+                    } catch (err) {
+                        setError("Check your Script URL and Permissions.");
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+                fetchData();
+            }, []);
+
+            const filteredApps = useMemo(() => {
+                return apps.filter(app => 
+                    app.name.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+            }, [apps, searchTerm]);
+
+            if (selectedApp) {
+                return <AppViewer app={selectedApp} onClose={() => setSelectedApp(null)} />;
+            }
+
+            return (
+                <div className="h-full flex flex-col max-w-lg mx-auto bg-white border-x border-slate-200 shadow-xl overflow-hidden">
+                    <Header searchTerm={searchTerm} onSearch={setSearchTerm} />
+                    
+                    <main className="flex-1 overflow-y-auto ios-scroll p-6">
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+                                <div className="loader ease-linear rounded-full border-4 border-slate-100 h-12 w-12 mb-4"></div>
+                                <p className="animate-pulse">Connecting to Google Sheets...</p>
+                            </div>
+                        ) : error ? (
+                            <div className="text-center p-10 bg-red-50 rounded-3xl border border-red-100">
+                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i className="fa-solid fa-triangle-exclamation text-2xl text-red-500"></i>
+                                </div>
+                                <h3 className="text-red-800 font-bold mb-2">Connection Error</h3>
+                                <p className="text-red-600 text-sm mb-4">{error}</p>
+                                <button onClick={() => window.location.reload()} className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium">Try Again</button>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pb-12">
+                                {filteredApps.map((app, index) => (
+                                    <AppCard 
+                                        key={index} 
+                                        name={app.name} 
+                                        url={app.url} 
+                                        onClick={() => setSelectedApp(app)} 
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </main>
+
+                    <div className="p-6 text-center text-xs font-medium text-slate-400 bg-slate-50 border-t border-slate-100">
+                        <p>POWERED BY CLOUD SYNC</p>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
