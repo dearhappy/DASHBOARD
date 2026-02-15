@@ -43,7 +43,6 @@
         const { useState, useEffect, useMemo } = React;
 
         // --- CONFIGURATION ---
-        // REPLACE THIS URL with your published Google Apps Script Web App URL
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwX-IYZ0Kwwg6abtD--dfHslPEfNnlLvWkYJZRNOjHg65xndMaINSiq-8gumgheK9SPoA/exec"; 
 
         const Header = ({ onSearch, searchTerm }) => (
@@ -72,15 +71,21 @@
             </div>
         );
 
-        const AppCard = ({ name, url, onClick }) => {
+        const AppCard = ({ name, url }) => {
             const colors = ['bg-blue-500', 'bg-indigo-500', 'bg-violet-500', 'bg-fuchsia-500', 'bg-emerald-500'];
             const colorClass = colors[name.length % colors.length];
             const initial = name.charAt(0).toUpperCase();
 
+            const handleClick = () => {
+                if (url) {
+                    window.location.href = url;
+                }
+            };
+
             return (
                 <button 
-                    onClick={onClick} 
-                    className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm active:scale-95 hover:border-blue-200 hover:shadow-md transition-all duration-200 flex flex-col items-center justify-center gap-4 aspect-square group"
+                    onClick={handleClick} 
+                    className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm active:scale-95 hover:border-blue-200 hover:shadow-md transition-all duration-200 flex flex-col items-center justify-center gap-4 aspect-square group w-full"
                 >
                     <div className={`${colorClass} w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-blue-500/10 group-hover:scale-110 transition-transform`}>
                         {initial}
@@ -90,68 +95,22 @@
             );
         };
 
-        const AppViewer = ({ app, onClose }) => {
-            const [isLoading, setIsLoading] = useState(true);
-
-            return (
-                <div className="fixed inset-0 z-50 bg-white flex flex-col h-full w-full fade-in">
-                    <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 shadow-sm shrink-0">
-                        <button onClick={onClose} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors flex items-center">
-                            <i className="fa-solid fa-chevron-left mr-2"></i>
-                            <span className="text-sm font-medium">Back</span>
-                        </button>
-                        <h2 className="font-bold text-slate-800 truncate px-4 text-sm uppercase tracking-wider">{app.name}</h2>
-                        <button onClick={() => window.location.reload()} className="p-2 text-slate-400">
-                             <i className="fa-solid fa-rotate-right"></i>
-                        </button>
-                    </div>
-
-                    <div className="flex-1 relative bg-slate-100 w-full h-full overflow-hidden">
-                        {isLoading && (
-                            <div className="absolute inset-0 flex items-center justify-center z-10 bg-slate-50">
-                                <div className="loader ease-linear rounded-full border-4 border-slate-200 h-10 w-10"></div>
-                            </div>
-                        )}
-                        <iframe 
-                            src={app.url} 
-                            className="w-full h-full border-0" 
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                            allowFullScreen
-                            onLoad={() => setIsLoading(false)}
-                            sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-top-navigation-by-user-activation"
-                        />
-                    </div>
-                </div>
-            );
-        };
-
         const App = () => {
             const [apps, setApps] = useState([]);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
-            const [selectedApp, setSelectedApp] = useState(null);
             const [searchTerm, setSearchTerm] = useState("");
 
             useEffect(() => {
                 const fetchData = async () => {
-                    if (SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwX-IYZ0Kwwg6abtD--dfHslPEfNnlLvWkYJZRNOjHg65xndMaINSiq-8gumgheK9SPoA/exec") {
-                       // Fallback Mock Data
-                       setApps([
-                           { name: "Setup Required", url: "" },
-                           { name: "Documentation", url: "https://www.wikipedia.org" },
-                           { name: "Company News", url: "https://news.google.com" },
-                       ]);
-                       setLoading(false);
-                       return;
-                    }
-
                     try {
                         const response = await fetch(SCRIPT_URL);
                         const data = await response.json();
                         if (data.error) throw new Error(data.error);
                         setApps(data);
                     } catch (err) {
-                        setError("Check your Script URL and Permissions.");
+                        console.error("Fetch error:", err);
+                        setError("Could not connect to the app source. Please check your script deployment.");
                     } finally {
                         setLoading(false);
                     }
@@ -165,10 +124,6 @@
                 );
             }, [apps, searchTerm]);
 
-            if (selectedApp) {
-                return <AppViewer app={selectedApp} onClose={() => setSelectedApp(null)} />;
-            }
-
             return (
                 <div className="h-full flex flex-col max-w-lg mx-auto bg-white border-x border-slate-200 shadow-xl overflow-hidden">
                     <Header searchTerm={searchTerm} onSearch={setSearchTerm} />
@@ -177,7 +132,7 @@
                         {loading ? (
                             <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                                 <div className="loader ease-linear rounded-full border-4 border-slate-100 h-12 w-12 mb-4"></div>
-                                <p className="animate-pulse">Connecting to Google Sheets...</p>
+                                <p className="animate-pulse">Loading Apps...</p>
                             </div>
                         ) : error ? (
                             <div className="text-center p-10 bg-red-50 rounded-3xl border border-red-100">
@@ -195,7 +150,6 @@
                                         key={index} 
                                         name={app.name} 
                                         url={app.url} 
-                                        onClick={() => setSelectedApp(app)} 
                                     />
                                 ))}
                             </div>
@@ -203,7 +157,7 @@
                     </main>
 
                     <div className="p-6 text-center text-xs font-medium text-slate-400 bg-slate-50 border-t border-slate-100">
-                        <p>POWERED BY CLOUD SYNC</p>
+                        <p>SYNCED WITH GOOGLE SHEETS</p>
                     </div>
                 </div>
             );
