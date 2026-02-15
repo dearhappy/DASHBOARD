@@ -71,10 +71,11 @@
             </div>
         );
 
-        const AppCard = ({ name, url }) => {
+        const AppCard = ({ name, url, logo }) => {
             const colors = ['bg-blue-500', 'bg-indigo-500', 'bg-violet-500', 'bg-fuchsia-500', 'bg-emerald-500'];
             const colorClass = colors[name.length % colors.length];
             const initial = name.charAt(0).toUpperCase();
+            const [imgError, setImgError] = useState(false);
 
             const handleClick = () => {
                 if (url) {
@@ -87,8 +88,19 @@
                     onClick={handleClick} 
                     className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm active:scale-95 hover:border-blue-200 hover:shadow-md transition-all duration-200 flex flex-col items-center justify-center gap-4 aspect-square group w-full"
                 >
-                    <div className={`${colorClass} w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-blue-500/10 group-hover:scale-110 transition-transform`}>
-                        {initial}
+                    <div className={`${colorClass} w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden shadow-lg shadow-blue-500/10 group-hover:scale-110 transition-transform bg-white`}>
+                        {logo && !imgError ? (
+                            <img 
+                                src={logo} 
+                                alt={name} 
+                                className="w-full h-full object-contain p-1"
+                                onError={() => setImgError(true)}
+                            />
+                        ) : (
+                            <div className={`${colorClass} w-full h-full flex items-center justify-center`}>
+                                <span className="text-white text-2xl font-bold">{initial}</span>
+                            </div>
+                        )}
                     </div>
                     <span className="text-sm font-semibold text-slate-700 text-center line-clamp-2 leading-tight">{name}</span>
                 </button>
@@ -150,6 +162,7 @@
                                         key={index} 
                                         name={app.name} 
                                         url={app.url} 
+                                        logo={app.logo}
                                     />
                                 ))}
                             </div>
